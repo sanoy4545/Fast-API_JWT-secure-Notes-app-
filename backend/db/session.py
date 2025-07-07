@@ -7,5 +7,5 @@ database_url=settings.DATABASE_URL
 
 engine=create_engine(database_url)
 
-session=sessionmaker(autoflush=False,autocommit=False,bind=engine)
+session_local=sessionmaker(autoflush=False,autocommit=False,bind=engine)
 Base=declarative_base()

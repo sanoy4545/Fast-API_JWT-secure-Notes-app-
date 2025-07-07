@@ -9,7 +9,7 @@ class User(Base):
     username=Column(String(50),unique=True,index=True,nullable=False)
     hashed_password=Column(String(255),nullable=False)
     
-    notes=relationship("note",back_populates="Owner")
+    notes=relationship("Note",back_populates="owner")
 
 class Note(Base):
     __tablename__="notes"
@@ -19,5 +19,5 @@ class Note(Base):
     content = Column(String(255), nullable=False)
     user_id=Column(Integer,ForeignKey("users.id"))
     
-    owner=relationship("user",back_populates="notes")
+    owner=relationship("User",back_populates="notes")
     

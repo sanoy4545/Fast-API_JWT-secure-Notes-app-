@@ -4,3 +4,5 @@ python-jose[cryptography]
 passlib[bcrypt]
 sqlalchemy
 python-dotenv
+pydantic_settings
+pymysql

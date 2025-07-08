@@ -4,6 +4,8 @@ import requests
 st.set_page_config(page_title="Secure Notes", page_icon="📝")
 st.title("🔐 Secure Notes App")
 
+API_URL = "http://localhost:8000"
+
 # --- LOGIN SECTION ---
 if "token" not in st.session_state:
     st.subheader("Login")
@@ -13,43 +15,65 @@ if "token" not in st.session_state:
 
     if st.button("Login"):
         try:
-            response = requests.post("http://localhost:8000/login", json={
+            response = requests.post(f"{API_URL}/login", json={
                 "username": username,
                 "password": password
             })
 
             if response.status_code == 200:
-                token = response.json()["access_token"]
-                st.session_state.token = token
+                st.session_state.token = response.json()["access_token"]
                 st.success("✅ Logged in successfully!")
-                st.rerun()  # 👈 immediately show next section
+                st.rerun()
             else:
                 st.error("❌ Invalid credentials")
-
         except requests.exceptions.ConnectionError:
             st.error("⚠️ Backend not running. Start FastAPI server at localhost:8000")
 
-# --- NOTES SECTION ---
+# --- SECURE NOTES SECTION ---
 else:
     st.success("✅ Welcome! You are logged in.")
-    st.subheader("Your Notes")
+    st.subheader("📄 Your Notes")
 
-    if st.button("Load Notes"):
-        headers = {
-            "Authorization": f"Bearer {st.session_state.token}"
-        }
-        try:
-            res = requests.get("http://localhost:8000/notes", headers=headers)
+    headers = {
+        "Authorization": f"Bearer {st.session_state.token}"
+    }
+
+    # --- Create New Note ---
+    st.markdown("### ➕ Add a New Note")
+    note_title = st.text_input("Title", key="new_note_title")
+    note_content = st.text_area("Content", key="new_note_content")
+    if st.button("Add Note"):
+        if note_title and note_content:
+            res = requests.post(f"{API_URL}/notes", headers=headers, json={
+                "title": note_title,
+                "content": note_content
+            })
             if res.status_code == 200:
-                notes = res.json()
-                st.json(notes)
-            elif res.status_code == 401:
-                st.error("🔒 Unauthorized: Your token may be expired or invalid.")
+                st.success("✅ Note added successfully!")
+                st.rerun()
             else:
-                st.error(f"⚠️ Unexpected error: {res.status_code}")
-        except requests.exceptions.ConnectionError:
-            st.error("⚠️ Backend not running. Start FastAPI server at localhost:8000")
+                st.error("❌ Failed to add note")
+        else:
+            st.warning("⚠️ Title and content are required.")
 
+    # --- View Notes ---
+    st.markdown("### 📋 Saved Notes")
+    try:
+        res = requests.get(f"{API_URL}/notes", headers=headers)
+        if res.status_code == 200:
+            notes = res.json()
+            if notes:
+                for note in notes:
+                    with st.expander(f"📝 {note['title']} (ID: {note['id']})"):
+                        st.write(note["content"])
+            else:
+                st.info("You have no notes yet.")
+        elif res.status_code == 401:
+            st.error("🔒 Unauthorized. Please login again.")
+    except requests.exceptions.ConnectionError:
+        st.error("⚠️ Backend not running.")
+
+    # --- Logout ---
     if st.button("Logout"):
         del st.session_state.token
         st.rerun()

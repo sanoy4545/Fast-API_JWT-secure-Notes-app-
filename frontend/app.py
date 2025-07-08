@@ -6,28 +6,52 @@ st.title("🔐 Secure Notes App")
 
 API_URL = "http://localhost:8000"
 
-# --- LOGIN SECTION ---
+# --- LOGIN & REGISTER SECTION ---
 if "token" not in st.session_state:
-    st.subheader("Login")
+    st.subheader("Authentication")
+    login_tab, register_tab = st.tabs(["🔑 Login", "🆕 Register"])
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    # --- Login Tab ---
+    with login_tab:
+        username = st.text_input("Username", key="login_username")
+        password = st.text_input("Password", type="password", key="login_password")
 
-    if st.button("Login"):
-        try:
-            response = requests.post(f"{API_URL}/login", json={
-                "username": username,
-                "password": password
-            })
+        if st.button("Login"):
+            try:
+                response = requests.post(f"{API_URL}/login", json={
+                    "username": username,
+                    "password": password
+                })
 
-            if response.status_code == 200:
-                st.session_state.token = response.json()["access_token"]
-                st.success("✅ Logged in successfully!")
-                st.rerun()
+                if response.status_code == 200:
+                    st.session_state.token = response.json()["access_token"]
+                    st.success("✅ Logged in successfully!")
+                    st.rerun()
+                else:
+                    st.error("❌ Invalid credentials")
+            except requests.exceptions.ConnectionError:
+                st.error("⚠️ Backend not running. Start FastAPI server at localhost:8000")
+
+    # --- Register Tab ---
+    with register_tab:
+        reg_username = st.text_input("New Username", key="register_username")
+        reg_password = st.text_input("New Password", type="password", key="register_password")
+
+        if st.button("Register"):
+            if reg_username and reg_password:
+                try:
+                    res = requests.post(f"{API_URL}/register", json={
+                        "username": reg_username,
+                        "password": reg_password
+                    })
+                    if res.status_code == 200:
+                        st.success("✅ Registered successfully! You can now log in.")
+                    else:
+                        st.error(f"❌ {res.json().get('detail', 'Registration failed')}")
+                except requests.exceptions.ConnectionError:
+                    st.error("⚠️ Backend not running. Start FastAPI server at localhost:8000")
             else:
-                st.error("❌ Invalid credentials")
-        except requests.exceptions.ConnectionError:
-            st.error("⚠️ Backend not running. Start FastAPI server at localhost:8000")
+                st.warning("⚠️ Username and password are required.")
 
 # --- SECURE NOTES SECTION ---
 else:

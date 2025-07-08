@@ -67,20 +67,45 @@ else:
                     with st.expander(f"📝 {note['title']} (ID: {note['id']})"):
                         st.write(note["content"])
 
-                        # --- Delete Note ---
-                        if st.button("🗑️ Delete", key=f"delete_{note['id']}"):
-                            confirm = st.radio(
-                                f"Confirm delete for Note ID {note['id']}?",
-                                ["No", "Yes"],
-                                key=f"confirm_delete_{note['id']}"
+                        # --- Update Section ---
+                        new_title = st.text_input("Edit Title", value=note["title"], key=f"title_{note['id']}")
+                        new_content = st.text_area("Edit Content", value=note["content"], key=f"content_{note['id']}")
+
+                        if st.button("✏️ Update", key=f"update_{note['id']}"):
+                            update_res = requests.put(
+                                f"{API_URL}/notes/{note['id']}",
+                                headers=headers,
+                                json={"title": new_title, "content": new_content}
                             )
-                            if confirm == "Yes":
-                                del_res = requests.delete(f"{API_URL}/notes/{note['id']}", headers=headers)
-                                if del_res.status_code == 200:
-                                    st.success("✅ Note deleted!")
+                            if update_res.status_code == 200:
+                                st.success("✅ Note updated!")
+                                st.rerun()
+                            else:
+                                st.error("❌ Failed to update note")
+
+                        # --- Delete Confirmation State ---
+                        confirm_key = f"confirm_delete_{note['id']}"
+
+                        if st.session_state.get(confirm_key) != True:
+                            if st.button("🗑️ Delete", key=f"delete_{note['id']}"):
+                                st.session_state[confirm_key] = True
+                                st.rerun()
+                        else:
+                            st.warning(f"⚠️ Confirm delete for Note ID {note['id']}?")
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button("✅ Yes, Delete", key=f"yes_delete_{note['id']}"):
+                                    del_res = requests.delete(f"{API_URL}/notes/{note['id']}", headers=headers)
+                                    if del_res.status_code == 200:
+                                        st.success("✅ Note deleted!")
+                                        del st.session_state[confirm_key]
+                                        st.rerun()
+                                    else:
+                                        st.error("❌ Failed to delete note")
+                            with col2:
+                                if st.button("❌ Cancel", key=f"cancel_delete_{note['id']}"):
+                                    del st.session_state[confirm_key]
                                     st.rerun()
-                                else:
-                                    st.error("❌ Failed to delete note")
             else:
                 st.info("You have no notes yet.")
         elif res.status_code == 401:

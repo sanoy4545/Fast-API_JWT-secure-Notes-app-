@@ -4,7 +4,7 @@ from fastapi import Path
 from db.models import User, Note
 from db.session import session_local
 from dependencies import get_user
-from schemas import NoteCreate
+from schemas import NoteCreate,NoteUpdate
 from .auth import get_db
 
 router = APIRouter()
@@ -51,8 +51,22 @@ def delete_note(note_id: int = Path(...), current_user: str = Depends(get_user),
     note = db.query(Note).filter(Note.id == note_id, Note.user_id == user.id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found or unauthorized")
-
+    print("hi")
     db.delete(note)
     db.commit()
     return {"msg": "Note deleted successfully"}
 
+@router.put("/notes/{note_id}")
+def update_note(note_id: int, note_data: NoteUpdate, current_user: str = Depends(get_user), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == current_user).first()
+    note = db.query(Note).filter(Note.id == note_id, Note.user_id == user.id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    if note_data.title is not None:
+        note.title = note_data.title
+    if note_data.content is not None:
+        note.content = note_data.content
+
+    db.commit()
+    return {"msg": "Note updated successfully"}

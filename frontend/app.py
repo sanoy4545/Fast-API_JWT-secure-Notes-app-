@@ -66,6 +66,21 @@ else:
                 for note in notes:
                     with st.expander(f"📝 {note['title']} (ID: {note['id']})"):
                         st.write(note["content"])
+
+                        # --- Delete Note ---
+                        if st.button("🗑️ Delete", key=f"delete_{note['id']}"):
+                            confirm = st.radio(
+                                f"Confirm delete for Note ID {note['id']}?",
+                                ["No", "Yes"],
+                                key=f"confirm_delete_{note['id']}"
+                            )
+                            if confirm == "Yes":
+                                del_res = requests.delete(f"{API_URL}/notes/{note['id']}", headers=headers)
+                                if del_res.status_code == 200:
+                                    st.success("✅ Note deleted!")
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Failed to delete note")
             else:
                 st.info("You have no notes yet.")
         elif res.status_code == 401:
